@@ -1,0 +1,686 @@
+---
+title: "SOP Visuals"
+author: "Jim Felps"
+date: "4/23/2020"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r load scripts, message=FALSE, warning=FALSE, include=FALSE}
+source('./scripts/01 - import.R')
+source('./scripts/02 - clean.R')
+```
+
+
+## S&OP Slides
+
+- Salesforce Opportunities
+- Order Entry
+- Engineering Efficiency Metrics
+
+
+## Salesforce Pipeline + Opportunities
+
+```{r Salesforce Pipeline all brands, fig.align='left', fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+all_backlog_opp <- backlog_and_opportun %>%
+  filter(complexity != "No Engineering",
+         complexity != "Parts Order",
+         !is.na(complexity),
+         !is.na(bucket)) %>%
+  ggplot(aes(bucket, total_tons, fill = type)) +
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  scale_fill_discrete(guide = guide_legend(reverse = TRUE)) +
+  labs(x = "",
+       y = "Tons") +
+  theme(legend.position = "bottom",
+        axis.text = element_text(size = 12),
+        legend.text = element_text(size = 13),
+        axis.title.y = element_text(size = 15))
+
+all_backlog_opp
+
+```
+
+## Backlog + Opportunities by Brand
+### Opportunity Tons Factored by probability
+
+```{r Salesforce opportunities by Brand, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+brand_backlog_opp <- backlog_and_opportun %>%
+  filter(complexity != "No Engineering",
+         complexity != "Parts Order",
+         !is.na(complexity),
+         !is.na(bucket)) %>%
+  ggplot(aes(bucket, total_tons, fill = type)) +
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  scale_fill_discrete(guide = guide_legend(reverse = TRUE)) +
+  coord_flip() +
+  facet_grid(cols = vars(brand)) +
+  theme(legend.position = "bottom") +
+  labs(x = "",
+       y = "Tons")
+
+brand_backlog_opp
+```
+
+
+# Order Entry Pipeline
+Expected order entry by tons and engineering hours. 
+Data from Salesforce
+
+## Order Entry Pipeline
+#### Tons factored by probability
+
+```{r Expected close by brand, echo=FALSE, message=FALSE, warning=FALSE}
+butler_oe_pipe <- opp_with_complexity %>%
+  filter(brand == "BUTLER",
+         close_month >= current_month &
+           close_month <= floor_date(current_month + months(10), "month")) %>%
+  group_by(brand, close_month) %>%
+  replace_na(list(
+    factored_tons = 0
+  )) %>%
+  summarise(tons = round(sum(factored_tons),2)) %>%
+  filter(close_month != 	"2021-02-01") %>%
+  ggplot(aes(close_month, tons)) +
+  geom_bar(stat = "identity", fill = bluescope_darkblue) +
+  coord_flip() +
+  facet_grid(cols = vars(brand)) +
+  scale_x_date(date_labels = "%b %Y", date_breaks = "2 months") +
+  scale_y_continuous(labels = scales::comma, limits = c(0,30000)) +
+  labs(x = "",
+       y = "Tons") +
+  theme(axis.title = element_text(size = 13),
+        axis.text = element_text(size = 13),
+        strip.text = element_text(size = 15, face = "bold"),
+        strip.background = element_rect(fill = bluescope_darkblue))
+
+vp_oe_pipe <- opp_with_complexity %>%
+  filter(brand == "VP",
+         close_month >= current_month &
+           close_month <= floor_date(current_month + months(12), "month")) %>%
+  group_by(brand, close_month) %>%
+  replace_na(list(
+    factored_tons = 0
+  )) %>%
+  summarise(tons = round(sum(factored_tons),2)) %>%
+  ggplot(aes(close_month, tons)) +
+  geom_bar(stat = "identity", fill = bluescope_darkgray) +
+  coord_flip() +
+  facet_grid(cols = vars(brand)) +
+  scale_x_date(date_labels = "%b %Y", date_breaks = "2 months") +
+  scale_y_continuous(labels = scales::comma, limits = c(0,30000)) +
+  labs(x = "",
+       y = "Tons",
+       caption = "Data from Salesforce\nOpportunities by expected close month. Tons are factored by probability") +
+  theme(axis.title = element_text(size = 13),
+        axis.text = element_text(size = 13),
+        strip.text = element_text(size = 15, face = "bold"),
+        strip.background = element_rect(fill = bluescope_darkgray),
+        plot.caption = element_text(size = 13))
+
+brand_pipline_tons <- butler_oe_pipe | vp_oe_pipe 
+brand_pipline_tons 
+```
+
+## Order Entry Hours
+
+```{r Order Entry Eng Hrs, warning=FALSE}
+butler_oe_pipe_hours <- opp_with_complexity %>%
+  filter(brand == "BUTLER",
+         close_month >= current_month &
+           close_month <= floor_date(current_month + months(12), "month")) %>%
+  group_by(brand, close_month) %>%
+  replace_na(list(
+    factored_tons = 0,
+    factored_hours = 0
+  )) %>%
+  summarise(hours = round(sum(factored_hours),2)) %>%
+  ggplot(aes(close_month, hours)) +
+  geom_bar(stat = "identity", fill = bluescope_darkblue) +
+  coord_flip() +
+  facet_grid(cols = vars(brand)) +
+  scale_x_date(date_labels = "%b %Y", date_breaks = "2 months") +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 65000)) +
+  labs(x = "",
+       y = "Engineering Hours",
+       title = "") +
+  theme(axis.title = element_text(size = 13),
+        axis.text = element_text(size = 13),
+        strip.text = element_text(size = 15, face = "bold"),
+        strip.background = element_rect(fill = bluescope_darkblue))
+
+vp_oe_pipe_hours <- opp_with_complexity %>%
+  filter(brand == "VP",
+         close_month >= current_month &
+           close_month <= floor_date(current_month + months(12), "month")) %>%
+  group_by(brand, close_month) %>%
+  replace_na(list(
+    factored_tons = 0,
+    factored_hours = 0
+  )) %>%
+  summarise(hours = round(sum(factored_hours),2)) %>%
+  ggplot(aes(close_month, hours)) +
+  geom_bar(stat = "identity", fill = bluescope_darkgray) +
+  coord_flip() +
+  facet_grid(cols = vars(brand)) +
+  scale_x_date(date_labels = "%b %Y", date_breaks = "2 months") +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 65000)) +
+  labs(x = "",
+       y = "Engineering Hours",
+       title = "",
+       caption = "Data from Salesforce\nOpportunities by expected close month. Hours are factored by probability") +
+  theme(axis.title = element_text(size = 13),
+        axis.text = element_text(size = 13),
+        strip.text = element_text(size = 15, face = "bold"),
+        strip.background = element_rect(fill = bluescope_darkgray),
+        plot.caption = element_text(size = 13))
+
+oe_pip_hours <- butler_oe_pipe_hours | vp_oe_pipe_hours
+oe_pip_hours
+```
+
+# Closed and Won Opportunities, Last 13 Months
+
+
+## Order Entry by Brand, Last 13 Months
+```{r oe by brand total tons, message=FALSE, warning=FALSE}
+# brand totals
+
+butler_tons <- order_entry_w_complexity %>%
+  filter(brand == "BUTLER",
+         complexity != "No Engineering") %>%
+  ggplot(aes(close_month, tons)) +
+  geom_bar(fill = "#0e76ad", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  facet_grid(cols = vars(brand)) +
+  theme(panel.grid.minor = element_blank(),
+        strip.background = element_rect(fill = "#0e76ad", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,15000)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       x = "",
+       y = "Tons")
+
+vp_tons <- order_entry_w_complexity %>%
+  filter(brand == "VP",
+         complexity != "No Engineering") %>%
+  ggplot(aes(close_month, tons)) +
+  geom_bar(fill = "#ad0e32", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  facet_grid(cols = vars(brand)) +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(size = 13),
+        strip.background = element_rect(fill = "#ad0e32", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,15000)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       x = "",
+       y = "",
+       caption = "Source: Salesforce closed and won\n opportunities, last 12 months")
+
+brand_total_tons <- butler_tons | vp_tons
+brand_total_tons
+```
+
+
+## Order Entry by Complexity (Tons), Last 13 Months
+```{r oe by complex (tons), message=FALSE, warning=FALSE}
+
+# tons
+
+butler_facet <- order_entry_w_complexity %>%
+  filter(brand == "BUTLER",
+         complexity != "No Engineering") %>%
+  ggplot(aes(close_month, tons)) +
+  geom_bar(fill = "#0e76ad", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  facet_grid(cols = vars(complexity), labeller = labeller(complexity = oe_labels)) +
+  theme(panel.grid.minor = element_blank(),
+        strip.background = element_rect(fill = "#0e76ad", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,7500)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       title = "Order Entry Tons by Complexity",
+       subtitle = "Butler",
+       x = "",
+       y = "Tons") 
+
+
+vp_facet <- order_entry_w_complexity %>%
+  filter(brand == "VP",
+         complexity != "No Engineering") %>%
+  ggplot(aes(close_month, tons)) +
+  geom_bar(fill = "#ad0e32", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  facet_grid(cols = vars(complexity), labeller = labeller(complexity = oe_labels)) +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(size = 13),
+        strip.background = element_rect(fill = "#ad0e32", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,7500)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       subtitle = "VP",
+       x = "",
+       y = "Tons",
+       caption = "Source: Salesforce closed and won\n opportunities, last 12 months") 
+
+oe_tons_patchwork <- butler_facet / vp_facet
+oe_tons_patchwork
+
+```
+
+## Order Entry by Complexity (Margin $/Eng Hr), Last 13 Months
+```{r oe by complex (margin), message=FALSE, warning=FALSE}
+# margin/eng hour
+
+butler_facet_margin <- order_entry_w_complexity %>%
+  filter(brand == "BUTLER",
+         complexity != "No Engineering") %>%
+  ggplot(aes(close_month, margin_per_hour)) +
+  geom_bar(fill = "#0e76ad", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  #geom_text(aes(label = order_count, fontface = "bold"), stat = "identity", position = position_dodge(0.9), hjust = -1) +
+  facet_grid(cols = vars(complexity), labeller = labeller(complexity = oe_labels)) +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(size = 13),
+        strip.background = element_rect(fill = "#0e76ad", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,700)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       x = "",
+       y = "",
+       #title = "Margin Dollars per Engineering Hour",
+       title = "Butler")
+
+
+vp_facet_margin <- order_entry_w_complexity %>%
+  filter(brand == "VP",
+         complexity != "No Engineering") %>%
+  ggplot(aes(close_month, margin_per_hour)) +
+  geom_bar(fill = "#ad0e32", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  #geom_text(aes(label = paste0("n = ",order_count), fontface = "bold"), stat = "identity", position = position_dodge(0.9), hjust = 1) +
+  facet_grid(cols = vars(complexity), labeller = labeller(complexity = oe_labels)) +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(size = 13),
+        strip.background = element_rect(fill = "#ad0e32", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,700)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       x = "",
+       y = "Margin $ per Engineering Hour",
+       title = "VP",
+       caption = "Source: Salesforce closed and won\n opportunities, last 12 months")
+
+oe_margin_patchwork <- butler_facet_margin / vp_facet_margin
+oe_margin_patchwork
+```
+
+## Engineering Hrs/Ton - New Order Previous 13 Months
+```{r oe phpt complex, message=FALSE, warning=FALSE}
+butler_phpt <- order_entry_w_complexity %>%
+  filter(brand == "BUTLER",
+         complexity != "No Engineering") %>%
+  mutate(phpt = round(eng_hours/tons,2)) %>%
+  ggplot(aes(close_month, phpt)) +
+  geom_bar(fill = "#0e76ad", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  #geom_text(aes(label = order_count, fontface = "bold"), stat = "identity", position = position_dodge(0.9), hjust = -1) +
+  facet_grid(cols = vars(complexity), labeller = labeller(complexity = oe_labels)) +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(size = 13),
+        strip.background = element_rect(fill = "#0e76ad", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,5.5)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       x = "",
+       y = "",
+       #title = "Margin Dollars per Engineering Hour",
+       title = "Butler")
+
+vp_phpt <- order_entry_w_complexity %>%
+  filter(brand == "VP",
+         complexity != "No Engineering") %>%
+  mutate(phpt = round(eng_hours/tons,2)) %>%
+  ggplot(aes(close_month, phpt)) +
+  geom_bar(fill = "#ad0e32", stat = "identity") +
+  geom_smooth(method = "loess",se = FALSE, color = "black") +
+  #geom_text(aes(label = paste0("n = ",order_count), fontface = "bold"), stat = "identity", position = position_dodge(0.9), hjust = 1) +
+  facet_grid(cols = vars(complexity), labeller = labeller(complexity = oe_labels)) +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(size = 13),
+        strip.background = element_rect(fill = "#ad0e32", colour = "black"),
+        strip.text = element_text(face = "bold", color = "white", size = 12),
+        axis.text = element_text(size = 11),
+        axis.text.x = element_text(angle = -45)) +
+  scale_y_continuous(limits = c(0,5.5)) +
+  scale_x_date(date_labels = "%b%y", date_breaks = "2 months") +
+  labs(fill = "",
+       x = "",
+       y = "Engineering Hours per Ton",
+       title = "VP",
+       caption = "Source: Salesforce closed and won\n opportunities, last 12 months")
+
+oe_phpt_patchwork <- butler_phpt / vp_phpt
+oe_phpt_patchwork
+```
+
+
+## Engineering Utilization
+```{r eng utilization, message=FALSE, warning=FALSE}
+bbna_util <- mbr_chart_metrics_all %>%
+  group_by(Org, fiscal_year, period) %>%
+  summarise(util_hours = round(sum(Utilized_Hrs),2),
+            hours = round(sum(Total_Hrs),2)) %>%
+  mutate(utilization = round(util_hours/hours,2)) %>%
+  ggplot(aes(x = period, y = utilization, fill = fiscal_year)) + 
+  geom_bar(stat = "Identity", position = "dodge") +
+  geom_hline(aes(yintercept = 0.7), color = "#990000", linetype = "dashed") +
+  geom_text(aes(label = utilization), vjust = text_vjust, size = text_label_size, position = position_dodge(0.9)) +
+  scale_fill_manual(values = custom_palette) +
+  labs(title = "Employee Utilization",
+       subtitle = "BBNA Engineering") +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = title_text),
+        plot.subtitle = element_text(hjust = 0.5, size = subtitle_text),
+        strip.text = element_blank(),
+        legend.text = element_text(size = legend_text),
+        legend.title = element_blank(),
+        legend.position = "top",
+        legend.direction = "horizontal",
+        panel.background = element_rect(fill = bluescope_lightgray),
+        panel.grid = element_line(color = bluescope_lightgray),
+        axis.text = element_text(size = legend_text))
+
+bbna_util
+```
+
+## Actual vs Quote Hours
+```{r Act vs Quote Eng Hours, message=FALSE, warning=FALSE}
+bbna_avq_hrs <- mbr_chart_metrics_all %>%
+  group_by(Org, fiscal_year, period) %>%
+  summarise(a_hours = round(sum(A_Hrs),2),
+            sold_hrs = round(sum(Sold_Hrs),2)) %>%
+  mutate(AvQ_Hrs = round(a_hours/sold_hrs,2)) %>%
+  ggplot(aes(x = period, y = AvQ_Hrs, fill = fiscal_year)) + 
+  geom_bar(stat = "Identity", position = "dodge") +
+  geom_hline(aes(yintercept = 1.14), color = "#990000", linetype = "dashed") +
+  geom_text(aes(label = AvQ_Hrs), vjust = text_vjust, size = text_label_size, position = position_dodge(0.9)) +
+  scale_fill_manual(values = custom_palette) +
+  labs(title = "Actual vs Quote Hours",
+       subtitle = "BBNA Engineering") +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = title_text),
+        plot.subtitle = element_text(hjust = 0.5, size = subtitle_text),
+        strip.text = element_blank(),
+        legend.text = element_text(size = legend_text),
+        legend.title = element_blank(),
+        legend.position = "top",
+        legend.direction = "horizontal",
+        panel.background = element_rect(fill = bluescope_lightgray),
+        panel.grid = element_line(color = bluescope_lightgray),
+        axis.text = element_text(size = legend_text))
+
+bbna_avq_hrs
+```
+
+## Actual vs Quote Hours by Complexity
+```{r AvQ Hrs by Complex, message=FALSE, warning=FALSE}
+butler_complex <- new_oswt %>%
+  filter(brand == "BUTLER") %>%
+  group_by(brand, project_name, complexity) %>%
+  summarise(
+    act_hours = sum(actual_hours),
+    bud_hours = sum(budgeting_hours),
+    avq_hours = round(act_hours/bud_hours,2)
+  ) %>%
+  mutate(over_hours = if_else(complexity == "CII/FT" & act_hours > 40, "Yes",
+                              if_else(complexity == "Simple" & act_hours > 100, "Yes",
+                                      if_else(complexity == "Moderate" & act_hours > 200, "Yes",
+                                              if_else(complexity == "Complex" & act_hours > 400, "Yes",
+                                                      if_else(complexity == "High Complexity" & act_hours > 800, "Yes",
+                                                              if_else(complexity == "Very High Complexity" & act_hours > 1000, "Yes", "No"))))))) %>%
+  ggplot(aes(brand, avq_hours, color = over_hours)) +
+  geom_jitter(alpha = 0.5, size = 4) +
+  geom_hline(aes(yintercept = 1.14), color = "#990000", linetype = "dashed") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text = element_text(size = 15),
+        panel.grid.major.y = element_blank(),
+        strip.background = element_blank(),
+        strip.text.x = element_blank()) +
+  labs(x = "",
+       y = "",
+       subtitle = "Butler") +
+  #ggtitle("Actual vs Quoted Engineering Hours by Complexity") +
+  scale_y_continuous(limits = c(0,4)) +
+  scale_color_manual(values = c("#000000", "#e63505")) +
+  facet_grid(rows = vars(complexity), labeller = labeller(complexity = labels_avq)) +
+  geom_hline(data = butler_complex_avg, aes(yintercept = complex_mean))
+
+vp_complex <- new_oswt %>%
+  filter(brand == "VP") %>%
+  group_by(brand, project_name, complexity) %>%
+  summarise(
+    act_hours = sum(actual_hours),
+    bud_hours = sum(budgeting_hours),
+    avq_hours = round(act_hours/bud_hours,2)
+  ) %>%
+  mutate(over_hours = if_else(complexity == "CII/FT" & act_hours > 40, "Yes",
+                              if_else(complexity == "Simple" & act_hours > 100, "Yes",
+                                      if_else(complexity == "Moderate" & act_hours > 200, "Yes",
+                                              if_else(complexity == "Complex" & act_hours > 400, "Yes",
+                                                      if_else(complexity == "High Complexity" & act_hours > 800, "Yes",
+                                                              if_else(complexity == "Very High Complexity" & act_hours > 1000, "Yes", "No"))))))) %>%
+  filter(project_name != "CHEVRON SHOP") %>%
+  ggplot(aes(brand, avq_hours, color = over_hours)) +
+  geom_jitter(alpha = 0.5, size = 4) +
+  geom_hline(aes(yintercept = 1.14), color = "#990000", linetype = "dashed") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text = element_text(size = 15),
+        panel.grid.major.y = element_blank(),
+        strip.text = element_text(size = 15),
+        plot.caption = element_text(size = 12)) +
+  labs(x = "",
+       y = "",
+       subtitle = "VP ",
+       caption = "orange dots represent jobs over complexity ceiling hours.\nRed dashed line is overall historical average of 1.14") +
+  #ggtitle("Actual vs Quoted Engineering Hours by Complexity") +
+  scale_y_continuous(limits = c(0,4)) +
+  scale_color_manual(values = c("#000000", "#e63505")) +
+  facet_grid(rows = vars(complexity), labeller = labeller(complexity = labels_avq)) +
+  geom_hline(data = vp_complex_avg, aes(yintercept = complex_mean))
+
+brand_by_complex <- butler_complex | vp_complex
+brand_by_complex
+
+financial_impact_table %>%
+  kable(caption = "Financial Impact of Actual vs Quote over 1.14 Goal") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 20, stripe_color = "black")
+```
+
+```{r excel tables of projects, message=FALSE, warning=FALSE, include=FALSE}
+butler_table <- new_oswt %>%
+  filter(brand == "BUTLER") %>%
+  group_by(brand, region, builder_name, project_name, complexity) %>%
+  summarise(
+    act_hours = sum(actual_hours),
+    bud_hours = sum(budgeting_hours),
+    avq_hours = round(act_hours/bud_hours,2)
+  ) %>%
+  mutate(over_hours = if_else(complexity == "CII/FT" & act_hours > 40, "Yes",
+                              if_else(complexity == "Simple" & act_hours > 100, "Yes",
+                                      if_else(complexity == "Moderate" & act_hours > 200, "Yes",
+                                              if_else(complexity == "Complex" & act_hours > 400, "Yes",
+                                                      if_else(complexity == "High Complexity" & act_hours > 800, "Yes",
+                                                              if_else(complexity == "Very High Complexity" & act_hours > 1000, "Yes", "No"))))))) %>%
+  select(brand, complexity, region, builder_name, project_name, avq_hours) %>%
+  arrange(complexity, desc(avq_hours))
+
+vp_table <- new_oswt %>%
+  filter(brand == "VP") %>%
+  group_by(brand, region, builder_name, project_name, complexity) %>%
+  summarise(
+    act_hours = sum(actual_hours),
+    bud_hours = sum(budgeting_hours),
+    avq_hours = round(act_hours/bud_hours,2)
+  ) %>%
+  mutate(over_hours = if_else(complexity == "CII/FT" & act_hours > 40, "Yes",
+                              if_else(complexity == "Simple" & act_hours > 100, "Yes",
+                                      if_else(complexity == "Moderate" & act_hours > 200, "Yes",
+                                              if_else(complexity == "Complex" & act_hours > 400, "Yes",
+                                                      if_else(complexity == "High Complexity" & act_hours > 800, "Yes",
+                                                              if_else(complexity == "Very High Complexity" & act_hours > 1000, "Yes", "No"))))))) %>%
+  select(brand, complexity, region, builder_name, project_name, avq_hours) %>%
+  arrange(complexity, desc(avq_hours))
+
+write_xlsx(butler_table, "//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/butler_table.xlsx")
+write_xlsx(vp_table, "//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/vp_table.xlsx")
+```
+
+
+## Brand Specific Charts for MBR's
+
+```{r}
+vp_complex_only <- new_oswt %>%
+  filter(brand == "VP") %>%
+  group_by(brand, project_name, complexity) %>%
+  summarise(
+    act_hours = sum(actual_hours),
+    bud_hours = sum(budgeting_hours),
+    avq_hours = round(act_hours/bud_hours,2)
+  ) %>%
+  mutate(over_hours = if_else(complexity == "CII/FT" & act_hours > 40, "Yes",
+                              if_else(complexity == "Simple" & act_hours > 100, "Yes",
+                                      if_else(complexity == "Moderate" & act_hours > 200, "Yes",
+                                              if_else(complexity == "Complex" & act_hours > 400, "Yes",
+                                                      if_else(complexity == "High Complexity" & act_hours > 800, "Yes",
+                                                              if_else(complexity == "Very High Complexity" & act_hours > 1000, "Yes", "No"))))))) %>%
+  ggplot(aes(brand, avq_hours, color = over_hours)) +
+  geom_jitter(alpha = 0.5, size = 4) +
+  geom_hline(aes(yintercept = 1.14), color = "#990000", linetype = "dashed") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text = element_text(size = 15),
+        panel.grid.major.y = element_blank(),
+        strip.text = element_text(size = 15),
+        plot.caption = element_text(size = 12)) +
+  labs(x = "",
+       y = "",
+       title = "VP ",
+       caption = "orange dots represent jobs over complexity ceiling hours.\nRed dashed line is overall historical average of 1.14") +
+  #ggtitle("Actual vs Quoted Engineering Hours by Complexity") +
+  #scale_y_continuous(limits = c(0,4.5), breaks = c(0.5,1,1.5,2,2.5,3,3.5,4)) +
+  scale_color_manual(values = c("#000000", "#e63505")) +
+  facet_grid(rows = vars(complexity), labeller = labeller(complexity = labels_avq)) +
+  geom_hline(data = vp_complex_avg, aes(yintercept = complex_mean))
+
+butler_complex_only <- new_oswt %>%
+  filter(brand == "BUTLER") %>%
+  group_by(brand, project_name, complexity) %>%
+  summarise(
+    act_hours = sum(actual_hours),
+    bud_hours = sum(budgeting_hours),
+    avq_hours = round(act_hours/bud_hours,2)
+  ) %>%
+  mutate(over_hours = if_else(complexity == "CII/FT" & act_hours > 40, "Yes",
+                              if_else(complexity == "Simple" & act_hours > 100, "Yes",
+                                      if_else(complexity == "Moderate" & act_hours > 200, "Yes",
+                                              if_else(complexity == "Complex" & act_hours > 400, "Yes",
+                                                      if_else(complexity == "High Complexity" & act_hours > 800, "Yes",
+                                                              if_else(complexity == "Very High Complexity" & act_hours > 1000, "Yes", "No"))))))) %>%
+  ggplot(aes(brand, avq_hours, color = over_hours)) +
+  geom_jitter(alpha = 0.5, size = 4) +
+  geom_hline(aes(yintercept = 1.14), color = "#990000", linetype = "dashed") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text = element_text(size = 15),
+        panel.grid.major.y = element_blank(),
+        strip.text = element_text(size = 15),
+        plot.caption = element_text(size = 12)) +
+  labs(x = "",
+       y = "",
+       title = "Butler ",
+       caption = "orange dots represent jobs over complexity ceiling hours.\nRed dashed line is overall historical average of 1.14") +
+  #ggtitle("Actual vs Quoted Engineering Hours by Complexity") +
+  #scale_y_continuous(limits = c(0,4.5), breaks = c(0.5,1,1.5,2,2.5,3,3.5,4)) +
+  scale_color_manual(values = c("#000000", "#e63505")) +
+  facet_grid(rows = vars(complexity), labeller = labeller(complexity = labels_avq)) +
+  geom_hline(data = butler_complex_avg, aes(yintercept = complex_mean))
+
+financial_impact_table %>%
+  select(-BUTLER) %>%
+  kable(caption = "Financial Impact of Actual vs Quote over 1.14 Goal") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 20, stripe_color = "black")
+
+financial_impact_table %>%
+  select(-VP) %>%
+  kable(caption = "Financial Impact of Actual vs Quote over 1.14 Goal") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), font_size = 20, stripe_color = "black")
+vp_complex_only
+butler_complex_only
+
+
+```
+
+
+```{r save graphs, message=FALSE, warning=FALSE, include=FALSE}
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/all_backlog_opp.png", all_backlog_opp, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/brand_backlog_opp.png", brand_backlog_opp, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/brand_pipline_tons.png", brand_pipline_tons, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/oe_pip_hours.png", oe_pip_hours, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/brand_total_tons.png", brand_total_tons, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/oe_tons_patchwork.png", oe_tons_patchwork, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/oe_margin_patchwork.png", oe_margin_patchwork, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/oe_phpt_patchwork.png", oe_phpt_patchwork, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/bbna_util.png", bbna_util, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/bbna_avq_hrs.png", bbna_avq_hrs, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/brand_by_complex.png", brand_by_complex, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/vp_complex_only.png", vp_complex_only, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/butler_complex_only.png", butler_complex_only, width = 16, height = 9, dpi = "retina")
+
+```
+
