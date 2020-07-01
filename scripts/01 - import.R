@@ -1,62 +1,5 @@
 
 
-############# LIBRARIES AND SHIT ------------------------------------------------------------------------
-
-library(tidyverse)
-library(janitor)
-library(lubridate)
-library(writexl)
-library(readxl)
-library(patchwork)
-library(ggforce)
-library(kableExtra)
-
-theme_set(theme_light())
-
-month <- format(Sys.Date(), "%B %Y")  # UPDATE
-
-current_month <- floor_date(Sys.Date(), unit = "month")
-
-labels_avq <- c(
-  "CII/FT" = "CII/FT",
-  "Simple" = "Simple\n < 100",
-  "Moderate" = "Moderate\n < 200",
-  "Complex" = "Complex\n < 400",
-  "High Complexity" = "High\n Complexity\n < 800",
-  "Very High Complexity" = "Very High\n Complexity\n 800+"
-)
-
-labels <- c(
-  "CII/FT" = "CII/FT",
-  "Simple (<=100)" = "Simple",
-  "Moderate (101-200)" = "Moderate",
-  "Complex (201-400)" = "Complex",
-  "High Complex (401-800)" = "High\n Complexity",
-  "Very High Complex (801+)" = "Very High\n Complexity"
-)
-
-oe_labels <- c(
-  "No Engineering" = "No Engineering",
-  "Simple" = "Simple",
-  "Moderate" = "Moderate",
-  "Complex" = "Complex",
-  "High Complexity" = "High\n Complexity",
-  "Very High Complexity" = "Very High\n Complexity"
-)
-
-bluescope_lightblue <- "#49b4e6"
-bluescope_darkblue <- "#1e7cc1"
-bluescope_darkgray <- "#7191a9"
-bluescope_lightgray <- "#ffffff"
-bluescope_white <- "#feffff"
-custom_palette <- c(bluescope_lightblue, bluescope_darkgray)
-text_label_size <- 5
-text_vjust <- 1
-title_text <- 20
-subtitle_text <- 16
-legend_text <- 14
-point_alpha <- 0.9
-
 ############# SALESFORCE OPPORTUNITIES --------------------------------------------------------------
 
     ## BUTLER ##
@@ -241,3 +184,17 @@ Engineering_Metrics <- read_excel("~/R/R Data/S&OP/Engineering/Engineering Metri
                                   skip = 41) %>%
   clean_names("snake") %>%
   mutate(proj_num = str_sub(order_number, 1,8))
+
+
+############# NEW LEAD TIMES BY COMPLEXITY CHART
+
+lead_times_summary <- read_excel("~/R/R Data/Engineering/Lead Times Summary.xlsx", 
+                                 col_types = c("date", "text", "numeric", "numeric")) %>%
+  clean_names() %>% 
+  mutate(complexity = factor(complexity,
+                             levels = c("Very Simple",
+                                        "Simple",
+                                        "Moderate",
+                                        "Complex",
+                                        "High Complex",
+                                        "Very High Complex")))

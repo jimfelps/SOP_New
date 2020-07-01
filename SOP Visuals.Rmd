@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r load scripts, message=FALSE, warning=FALSE, include=FALSE}
+source('./scripts/Libraries Formulas and Variables.R')
 source('./scripts/01 - import.R')
 source('./scripts/02 - clean.R')
 ```
@@ -654,6 +655,58 @@ butler_complex_only
 
 ```
 
+## Lead Time Charts
+
+```{r}
+filtered_lead_summary %>% 
+  ggplot(aes(complexity, x3_mo_avg, fill = char_period)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(x3_mo_avg, 2), fontface = "bold"), vjust = -0.5, position = position_dodge(0.9)) +
+  scale_fill_manual(values = ad_colors) +
+  labs(
+    x = "",
+    y = "Weeks to ECK",
+    title = "Lead times by month and complexity are the average weeks to ECK \nfor all orders entered in the 3 months prior to the period"
+  ) +
+  theme(
+    legend.title = element_blank(),
+    legend.position = c(0.05,0.9),
+    legend.text = element_text(size = legend_text),
+    panel.border = element_blank(),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x = element_text(size = legend_text),
+    axis.title.y = element_text(size = legend_text),
+    axis.ticks = element_blank(),
+    plot.title = element_text(size = 14)
+  ) -> x3mma_lead_visual
+
+filtered_lead_summary %>% 
+  ggplot(aes(complexity, lead_time, fill = char_period)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(lead_time, 2), fontface = "bold"), vjust = -0.5, position = position_dodge(0.9)) +
+  scale_fill_manual(values = ad_colors) +
+  labs(
+    x = "",
+    y = "Weeks to ECK"
+  ) +
+  theme(
+    legend.title = element_blank(),
+    legend.position = c(0.05,0.9),
+    legend.text = element_text(size = legend_text),
+    panel.border = element_blank(),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x = element_text(size = legend_text),
+    axis.title.y = element_text(size = legend_text),
+    axis.ticks = element_blank(),
+    plot.title = element_text(size = 14)
+  ) -> avg_oe_lead_visual
+
+x3mma_lead_visual
+avg_oe_lead_visual
+```
+
 
 ```{r save graphs, message=FALSE, warning=FALSE, include=FALSE}
 ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/all_backlog_opp.png", all_backlog_opp, width = 16, height = 9, dpi = "retina")
@@ -680,7 +733,9 @@ ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/brand_by_co
 
 ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/vp_complex_only.png", vp_complex_only, width = 16, height = 9, dpi = "retina")
 
-ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/butler_complex_only.png", butler_complex_only, width = 16, height = 9, dpi = "retina")
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/avg_oe_lead_visual.png", avg_oe_lead_visual, width = 16, height = 9, dpi = "retina")
+
+ggsave("//bmkc1alfin/Fin-Acct/1 - Personal Folders/Jimbo/S&OP/charts/3mma_lead_visual.png", x3mma_lead_visual, width = 16, height = 9, dpi = "retina")
 
 ```
 

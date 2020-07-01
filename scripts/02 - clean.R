@@ -314,3 +314,18 @@ financial_impact_table <- new_oswt %>%
   replace_na(list(
     Notes = ""
   ))
+
+
+## LEAD TIME FILTERING
+
+lead_times_summary %>% 
+  mutate(year = year(period),
+         month = month(period)) %>% 
+  filter(month == 6 |
+         month == 1 & year == current_year |
+         period == current_month - months(1)) %>% 
+  mutate(char_period = as.character(format(period, "%b-%y")),
+         char_period = factor(char_period)) -> filtered_lead_summary
+
+filtered_lead_summary$char_period <- reorder(filtered_lead_summary$char_period, filtered_lead_summary$period)
+
